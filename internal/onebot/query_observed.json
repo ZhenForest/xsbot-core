@@ -1,0 +1,26 @@
+{
+  "user": {
+    "labelDetail": {"type":"object","fields":{"labels":{"type":"empty-array"}}},
+    "richBuffer": {"type":"one-of","alternatives":[{"type":"string"},{"type":"object","fields":{}}]},
+    "openQqShow":{"type":"boolean"},
+    "buddyOpenQqShow":{"type":"boolean"},
+    "isHideSession":{"type":"boolean"},
+    "c2cRingId":{"type":"string"},
+    "notifyFlag":{"type":"object","fields":{}},
+    "wxMsgNotifyClosed":{"type":"boolean"},
+    "aiAuthMsgBlacklistTimeS":{"type":"integer"},
+    "aiAuthQZoneBlacklistTimeS":{"type":"integer"},
+    "musicInfo":{"type":"object","fields":{"buf":{"type":"one-of","alternatives":[{"type":"string"},{"type":"object","fields":{}}]}}},
+    "extOnlineBusinessInfo":{"type":"object","fields":{
+      "buf":{"type":"one-of","alternatives":[{"type":"string"},{"type":"object","fields":{}}]},
+      "customStatus":{"type":"opaque-unavailable"},
+      "videoBizInfo":{"type":"object","fields":{"cid":{"type":"string"},"synchType":{"type":"string"},"tvUrl":{"type":"string"}}},
+      "videoInfo":{"type":"object","fields":{"name":{"type":"string"}}}
+    }},
+    "extBuffer":{"type":"object","fields":{"buf":{"type":"one-of","alternatives":[{"type":"string"},{"type":"object","fields":{}}]}}},
+    "customStatusDescInfo":{"type":"opaque-unavailable"},
+    "offlineType":{"type":"integer"},
+    "activeState":{"type":"integer"},
+    "activeStateChangeTime":{"type":"string"}
+  }
+}

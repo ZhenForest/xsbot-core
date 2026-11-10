@@ -1,0 +1,750 @@
+{
+  "user": {
+    "type": "object",
+    "fields": {
+      "uid": {
+        "type": "string"
+      },
+      "uin": {
+        "type": "string"
+      },
+      "nick": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "constellation": {
+        "type": "integer"
+      },
+      "shengXiao": {
+        "type": "integer"
+      },
+      "kBloodType": {
+        "type": "integer"
+      },
+      "homeTown": {
+        "type": "string"
+      },
+      "makeFriendCareer": {
+        "type": "integer"
+      },
+      "pos": {
+        "type": "string"
+      },
+      "college": {
+        "type": "string"
+      },
+      "country": {
+        "type": "string"
+      },
+      "province": {
+        "type": "string"
+      },
+      "city": {
+        "type": "string"
+      },
+      "postCode": {
+        "type": "string"
+      },
+      "address": {
+        "type": "string"
+      },
+      "regTime": {
+        "type": "integer"
+      },
+      "interest": {
+        "type": "string"
+      },
+      "labels": {
+        "type": "array",
+        "element": {
+          "type": "string"
+        }
+      },
+      "qqLevel": {
+        "type": "integer"
+      },
+      "qid": {
+        "type": "string"
+      },
+      "longNick": {
+        "type": "string"
+      },
+      "birthday_year": {
+        "type": "integer"
+      },
+      "birthday_month": {
+        "type": "integer"
+      },
+      "birthday_day": {
+        "type": "integer"
+      },
+      "age": {
+        "type": "integer"
+      },
+      "sex": {
+        "type": "string"
+      },
+      "eMail": {
+        "type": "string"
+      },
+      "phoneNum": {
+        "type": "string"
+      },
+      "categoryId": {
+        "type": "integer"
+      },
+      "richTime": {
+        "type": "integer"
+      },
+      "richBuffer": {
+        "type": "string"
+      },
+      "topTime": {
+        "type": "string"
+      },
+      "isBlock": {
+        "type": "boolean"
+      },
+      "isMsgDisturb": {
+        "type": "boolean"
+      },
+      "isSpecialCareOpen": {
+        "type": "boolean"
+      },
+      "isSpecialCareZone": {
+        "type": "boolean"
+      },
+      "ringId": {
+        "type": "string"
+      },
+      "isBlocked": {
+        "type": "boolean"
+      },
+      "recommendImgFlag": {
+        "type": "integer"
+      },
+      "disableEmojiShortCuts": {
+        "type": "integer"
+      },
+      "qidianMasterFlag": {
+        "type": "integer"
+      },
+      "qidianCrewFlag": {
+        "type": "integer"
+      },
+      "qidianCrewFlag2": {
+        "type": "integer"
+      },
+      "isHideQQLevel": {
+        "type": "integer"
+      },
+      "isHidePrivilegeIcon": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "integer"
+      },
+      "extStatus": {
+        "type": "integer"
+      },
+      "batteryStatus": {
+        "type": "integer"
+      },
+      "termType": {
+        "type": "integer"
+      },
+      "netType": {
+        "type": "integer"
+      },
+      "iconType": {
+        "type": "integer"
+      },
+      "customStatus": {
+        "type": "opaque-unavailable"
+      },
+      "setTime": {
+        "type": "string"
+      },
+      "specialFlag": {
+        "type": "integer"
+      },
+      "abiFlag": {
+        "type": "integer"
+      },
+      "eNetworkType": {
+        "type": "integer"
+      },
+      "showName": {
+        "type": "string"
+      },
+      "termDesc": {
+        "type": "string"
+      },
+      "musicInfo": {
+        "type": "object",
+        "fields": {
+          "buf": {
+            "type": "string"
+          }
+        }
+      },
+      "extOnlineBusinessInfo": {
+        "type": "object",
+        "fields": {
+          "buf": {
+            "type": "string"
+          },
+          "customStatus": {
+            "type": "opaque-unavailable"
+          },
+          "videoBizInfo": {
+            "type": "object",
+            "fields": {
+              "cid": {
+                "type": "string"
+              },
+              "tvUrl": {
+                "type": "string"
+              },
+              "synchType": {
+                "type": "string"
+              }
+            }
+          },
+          "videoInfo": {
+            "type": "object",
+            "fields": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "extBuffer": {
+        "type": "object",
+        "fields": {
+          "buf": {
+            "type": "string"
+          }
+        }
+      },
+      "user_id": {
+        "type": "integer"
+      },
+      "reg_time": {
+        "type": "integer"
+      },
+      "vip_level": {
+        "type": "integer"
+      },
+      "login_days": {
+        "type": "integer"
+      },
+      "nickname": {
+        "type": "string"
+      },
+      "long_nick": {
+        "type": "string"
+      },
+      "is_vip": {
+        "type": "boolean"
+      },
+      "is_years_vip": {
+        "type": "boolean"
+      }
+    }
+  },
+  "group": {
+    "type": "object",
+    "fields": {
+      "groupCode": {
+        "type": "string"
+      },
+      "groupUin": {
+        "type": "string"
+      },
+      "ownerUid": {
+        "type": "string"
+      },
+      "ownerUin": {
+        "type": "string"
+      },
+      "groupFlag": {
+        "type": "integer"
+      },
+      "groupFlagExt": {
+        "type": "integer"
+      },
+      "maxMemberNum": {
+        "type": "integer"
+      },
+      "memberNum": {
+        "type": "integer"
+      },
+      "groupOption": {
+        "type": "integer"
+      },
+      "classExt": {
+        "type": "integer"
+      },
+      "groupName": {
+        "type": "string"
+      },
+      "fingerMemo": {
+        "type": "string"
+      },
+      "groupQuestion": {
+        "type": "string"
+      },
+      "certType": {
+        "type": "integer"
+      },
+      "richFingerMemo": {
+        "type": "string"
+      },
+      "tagRecord": {
+        "type": "array",
+        "element": {
+          "type": "opaque-unavailable"
+        }
+      },
+      "shutUpAllTimestamp": {
+        "type": "integer"
+      },
+      "shutUpMeTimestamp": {
+        "type": "integer"
+      },
+      "groupTypeFlag": {
+        "type": "integer"
+      },
+      "privilegeFlag": {
+        "type": "integer"
+      },
+      "groupSecLevel": {
+        "type": "integer"
+      },
+      "groupFlagExt3": {
+        "type": "integer"
+      },
+      "isConfGroup": {
+        "type": "integer"
+      },
+      "isModifyConfGroupFace": {
+        "type": "integer"
+      },
+      "isModifyConfGroupName": {
+        "type": "integer"
+      },
+      "groupFlagExt4": {
+        "type": "integer"
+      },
+      "groupMemo": {
+        "type": "string"
+      },
+      "cmdUinMsgSeq": {
+        "type": "integer"
+      },
+      "cmdUinJoinTime": {
+        "type": "integer"
+      },
+      "cmdUinUinFlag": {
+        "type": "integer"
+      },
+      "cmdUinMsgMask": {
+        "type": "integer"
+      },
+      "groupSecLevelInfo": {
+        "type": "integer"
+      },
+      "cmdUinPrivilege": {
+        "type": "integer"
+      },
+      "cmdUinFlagEx2": {
+        "type": "integer"
+      },
+      "appealDeadline": {
+        "type": "integer"
+      },
+      "remarkName": {
+        "type": "string"
+      },
+      "isTop": {
+        "type": "boolean"
+      },
+      "groupFace": {
+        "type": "integer"
+      },
+      "groupGeoInfo": {
+        "type": "object",
+        "fields": {
+          "ownerUid": {
+            "type": "string"
+          },
+          "SetTime": {
+            "type": "integer"
+          },
+          "CityId": {
+            "type": "integer"
+          },
+          "Longitude": {
+            "type": "string"
+          },
+          "Latitude": {
+            "type": "string"
+          },
+          "GeoContent": {
+            "type": "string"
+          },
+          "poiId": {
+            "type": "string"
+          }
+        }
+      },
+      "certificationText": {
+        "type": "string"
+      },
+      "cmdUinRingtoneId": {
+        "type": "integer"
+      },
+      "longGroupName": {
+        "type": "string"
+      },
+      "autoAgreeJoinGroupUserNumForConfGroup": {
+        "type": "integer"
+      },
+      "autoAgreeJoinGroupUserNumForNormalGroup": {
+        "type": "integer"
+      },
+      "cmdUinFlagExt3Grocery": {
+        "type": "integer"
+      },
+      "groupCardPrefix": {
+        "type": "object",
+        "fields": {
+          "introduction": {
+            "type": "string"
+          },
+          "rptPrefix": {
+            "type": "array",
+            "element": {
+              "type": "opaque-unavailable"
+            }
+          }
+        }
+      },
+      "groupExt": {
+        "type": "object",
+        "fields": {
+          "groupInfoExtSeq": {
+            "type": "integer"
+          },
+          "reserve": {
+            "type": "integer"
+          },
+          "luckyWordId": {
+            "type": "string"
+          },
+          "lightCharNum": {
+            "type": "integer"
+          },
+          "luckyWord": {
+            "type": "string"
+          },
+          "starId": {
+            "type": "integer"
+          },
+          "essentialMsgSwitch": {
+            "type": "integer"
+          },
+          "todoSeq": {
+            "type": "integer"
+          },
+          "blacklistExpireTime": {
+            "type": "integer"
+          },
+          "isLimitGroupRtc": {
+            "type": "integer"
+          },
+          "companyId": {
+            "type": "integer"
+          },
+          "hasGroupCustomPortrait": {
+            "type": "integer"
+          },
+          "bindGuildId": {
+            "type": "string"
+          },
+          "groupOwnerId": {
+            "type": "object",
+            "fields": {
+              "memberUin": {
+                "type": "string"
+              },
+              "memberUid": {
+                "type": "string"
+              },
+              "memberQid": {
+                "type": "string"
+              }
+            }
+          },
+          "essentialMsgPrivilege": {
+            "type": "integer"
+          },
+          "msgEventSeq": {
+            "type": "string"
+          },
+          "inviteRobotSwitch": {
+            "type": "integer"
+          },
+          "gangUpId": {
+            "type": "string"
+          },
+          "qqMusicMedalSwitch": {
+            "type": "integer"
+          },
+          "showPlayTogetherSwitch": {
+            "type": "integer"
+          },
+          "groupFlagPro1": {
+            "type": "string"
+          },
+          "groupBindGuildIds": {
+            "type": "object",
+            "fields": {
+              "guildIds": {
+                "type": "array",
+                "element": {
+                  "type": "opaque-unavailable"
+                }
+              }
+            }
+          },
+          "viewedMsgDisappearTime": {
+            "type": "string"
+          },
+          "groupExtFlameData": {
+            "type": "object",
+            "fields": {
+              "switchState": {
+                "type": "integer"
+              },
+              "state": {
+                "type": "integer"
+              },
+              "dayNums": {
+                "type": "array",
+                "element": {
+                  "type": "opaque-unavailable"
+                }
+              },
+              "version": {
+                "type": "integer"
+              },
+              "updateTime": {
+                "type": "string"
+              },
+              "isDisplayDayNum": {
+                "type": "boolean"
+              }
+            }
+          },
+          "groupBindGuildSwitch": {
+            "type": "integer"
+          },
+          "groupAioBindGuildId": {
+            "type": "string"
+          },
+          "groupExcludeGuildIds": {
+            "type": "object",
+            "fields": {
+              "guildIds": {
+                "type": "array",
+                "element": {
+                  "type": "opaque-unavailable"
+                }
+              }
+            }
+          },
+          "fullGroupExpansionSwitch": {
+            "type": "integer"
+          },
+          "fullGroupExpansionSeq": {
+            "type": "string"
+          },
+          "inviteRobotMemberSwitch": {
+            "type": "integer"
+          },
+          "inviteRobotMemberExamine": {
+            "type": "integer"
+          },
+          "groupSquareSwitch": {
+            "type": "integer"
+          }
+        }
+      },
+      "msgLimitFrequency": {
+        "type": "integer"
+      },
+      "hlGuildAppid": {
+        "type": "integer"
+      },
+      "hlGuildSubType": {
+        "type": "integer"
+      },
+      "isAllowRecallMsg": {
+        "type": "integer"
+      },
+      "confUin": {
+        "type": "string"
+      },
+      "confMaxMsgSeq": {
+        "type": "integer"
+      },
+      "confToGroupTime": {
+        "type": "integer"
+      },
+      "groupSchoolInfo": {
+        "type": "object",
+        "fields": {
+          "location": {
+            "type": "string"
+          },
+          "grade": {
+            "type": "integer"
+          },
+          "school": {
+            "type": "string"
+          }
+        }
+      },
+      "activeMemberNum": {
+        "type": "integer"
+      },
+      "groupGrade": {
+        "type": "integer"
+      },
+      "groupCreateTime": {
+        "type": "integer"
+      },
+      "subscriptionUin": {
+        "type": "string"
+      },
+      "subscriptionUid": {
+        "type": "string"
+      },
+      "noFingerOpenFlag": {
+        "type": "integer"
+      },
+      "noCodeFingerOpenFlag": {
+        "type": "integer"
+      },
+      "isGroupFreeze": {
+        "type": "integer"
+      },
+      "allianceId": {
+        "type": "string"
+      },
+      "groupExtOnly": {
+        "type": "object",
+        "fields": {
+          "tribeId": {
+            "type": "integer"
+          },
+          "moneyForAddGroup": {
+            "type": "integer"
+          }
+        }
+      },
+      "isAllowConfGroupMemberModifyGroupName": {
+        "type": "integer"
+      },
+      "isAllowConfGroupMemberNick": {
+        "type": "integer"
+      },
+      "isAllowConfGroupMemberAtAll": {
+        "type": "integer"
+      },
+      "groupClassText": {
+        "type": "string"
+      },
+      "groupFreezeReason": {
+        "type": "integer"
+      },
+      "headPortraitSeq": {
+        "type": "integer"
+      },
+      "groupHeadPortrait": {
+        "type": "object",
+        "fields": {
+          "portraitCnt": {
+            "type": "integer"
+          },
+          "portraitInfo": {
+            "type": "array",
+            "element": {
+              "type": "opaque-unavailable"
+            }
+          },
+          "defaultId": {
+            "type": "integer"
+          },
+          "verifyingPortraitCnt": {
+            "type": "integer"
+          },
+          "verifyingPortraitInfo": {
+            "type": "array",
+            "element": {
+              "type": "opaque-unavailable"
+            }
+          }
+        }
+      },
+      "cmdUinJoinMsgSeq": {
+        "type": "integer"
+      },
+      "cmdUinJoinRealMsgSeq": {
+        "type": "integer"
+      },
+      "groupAnswer": {
+        "type": "string"
+      },
+      "groupAdminMaxNum": {
+        "type": "integer"
+      },
+      "inviteNoAuthNumLimit": {
+        "type": "string"
+      },
+      "hlGuildOrgId": {
+        "type": "integer"
+      },
+      "isAllowHlGuildBinary": {
+        "type": "integer"
+      },
+      "localExitGroupReason": {
+        "type": "integer"
+      },
+      "group_id": {
+        "type": "integer"
+      },
+      "member_count": {
+        "type": "integer"
+      },
+      "max_member_count": {
+        "type": "integer"
+      },
+      "group_all_shut": {
+        "type": "integer"
+      },
+      "group_name": {
+        "type": "string"
+      },
+      "group_remark": {
+        "type": "string"
+      }
+    }
+  }
+}
