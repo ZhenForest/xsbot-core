@@ -8,23 +8,25 @@ import (
 )
 
 type ConfigurationPlugin struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Version      string `json:"version"`
-	State        string `json:"state"`
-	Configurable bool   `json:"configurable"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Version          string `json:"version"`
+	State            string `json:"state"`
+	Configurable     bool   `json:"configurable"`
+	DocumentEditable bool   `json:"document_editable"`
 }
 
 func (m *Manager) ConfigurationPlugins() []ConfigurationPlugin {
 	out := []ConfigurationPlugin{}
 	for _, i := range m.Instances {
 		_, configurable := i.plugin.(sdk.Configurable)
-		out = append(out, ConfigurationPlugin{i.Descriptor.ID, i.Descriptor.Name, i.Descriptor.Version, i.State(), configurable})
+		_, documents := i.plugin.(sdk.DocumentEditable)
+		out = append(out, ConfigurationPlugin{i.Descriptor.ID, i.Descriptor.Name, i.Descriptor.Version, i.State(), configurable, documents})
 	}
 	return out
 }
 
-func (m *Manager) configurationPlugin(id string) (sdk.Configurable, error) {
+func (m *Manager) managementPlugin(id string) (sdk.Plugin, error) {
 	for _, i := range m.Instances {
 		if i.Descriptor.ID != id {
 			continue
@@ -32,13 +34,24 @@ func (m *Manager) configurationPlugin(id string) (sdk.Configurable, error) {
 		if !i.initialized.Load() || i.failed.Load() {
 			return nil, fmt.Errorf("插件尚未就绪")
 		}
-		p, ok := i.plugin.(sdk.Configurable)
-		if !ok {
-			return nil, fmt.Errorf("此插件没有配置项")
+		if i.closing.Load() {
+			return nil, fmt.Errorf("插件正在关闭")
 		}
-		return p, nil
+		return i.plugin, nil
 	}
 	return nil, fmt.Errorf("插件本次运行不可用；请检查启用状态与优先级")
+}
+
+func (m *Manager) configurationPlugin(id string) (sdk.Configurable, error) {
+	p, err := m.managementPlugin(id)
+	if err != nil {
+		return nil, err
+	}
+	c, ok := p.(sdk.Configurable)
+	if !ok {
+		return nil, fmt.Errorf("此插件没有配置项")
+	}
+	return c, nil
 }
 
 func (m *Manager) Configuration(ctx context.Context, id string) (out sdk.Configuration, err error) {

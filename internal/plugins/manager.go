@@ -25,17 +25,20 @@ type Selection struct {
 	Enabled  bool
 }
 type Instance struct {
-	started     atomic.Bool
-	Descriptor  sdk.Descriptor
-	Priority    int64
-	plugin      sdk.Plugin
-	host        sdk.Host
-	initDone    chan struct{}
-	initialized atomic.Bool
-	failed      atomic.Bool
-	closeOnce   sync.Once
-	closeDone   chan struct{}
-	log         func(string, error)
+	started            atomic.Bool
+	Descriptor         sdk.Descriptor
+	Priority           int64
+	NeedsQuotedMessage bool
+	plugin             sdk.Plugin
+	host               sdk.Host
+	initDone           chan struct{}
+	initialized        atomic.Bool
+	failed             atomic.Bool
+	closing            atomic.Bool
+	deliveryMu         sync.Mutex
+	closeOnce          sync.Once
+	closeDone          chan struct{}
+	log                func(string, error)
 }
 
 func (i *Instance) State() string {
@@ -174,7 +177,15 @@ func (m *Manager) Init(ctx context.Context) {
 		}
 		i.started.Store(true)
 		m.startMu.Unlock()
-		err := call(func() error { return i.plugin.Init(initCtx, i.host) })
+		err := call(func() error {
+			if e := i.plugin.Init(initCtx, i.host); e != nil {
+				return e
+			}
+			if consumer, ok := i.plugin.(sdk.QuotedMessageConsumer); ok {
+				i.NeedsQuotedMessage = consumer.NeedsQuotedMessage()
+			}
+			return nil
+		})
 		if err != nil {
 			i.failed.Store(true)
 			i.log(i.Descriptor.ID, err)
@@ -202,7 +213,9 @@ func (m *Manager) Init(ctx context.Context) {
 	}
 }
 func (i *Instance) Deliver(msg sdk.Message) sdk.DeliveryResult {
-	if !i.initialized.Load() || i.failed.Load() {
+	i.deliveryMu.Lock()
+	defer i.deliveryMu.Unlock()
+	if !i.initialized.Load() || i.failed.Load() || i.closing.Load() {
 		return sdk.DeliveryResult{Reason: "plugin not eligible"}
 	}
 	return i.plugin.Deliver(msg)
@@ -210,6 +223,11 @@ func (i *Instance) Deliver(msg sdk.Message) sdk.DeliveryResult {
 func (i *Instance) close(ctx context.Context) {
 	i.closeOnce.Do(func() {
 		defer close(i.closeDone)
+		i.closing.Store(true)
+		// Instance owns callback lifecycle: Close cannot overlap a short Deliver.
+		// Manager still bounds waiting by the shared shutdown deadline.
+		i.deliveryMu.Lock()
+		defer i.deliveryMu.Unlock()
 		if e := call(func() error { return i.plugin.Close(ctx) }); e != nil {
 			i.log(i.Descriptor.ID, e)
 		}

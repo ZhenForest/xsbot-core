@@ -76,21 +76,37 @@ type Scalar struct {
 	List    []Scalar
 }
 type Segment struct {
-	Kind     SegmentKind
-	Text     string
-	UserID   int64
-	Ref      *MessageRef
-	Quoted   *Message
-	Messages []Message
-	Unknown  *Unknown
-	Resource *Resource
-	Metadata map[string]Scalar
-	Payload  string
+	Kind        SegmentKind
+	Text        string
+	UserID      int64
+	Ref         *MessageRef
+	Quoted      *Message
+	QuoteStatus QuoteStatus
+	Messages    []Message
+	Unknown     *Unknown
+	Resource    *Resource
+	Metadata    map[string]Scalar
+	Payload     string
 }
 type Unknown struct {
 	Reason   string
 	Location string
 }
+
+// QuoteStatus describes Core's optional one-level enrichment, independently of
+// Unknown (which describes a malformed incoming reply). Empty means not requested.
+type QuoteStatus string
+
+const (
+	QuoteReady    QuoteStatus = "ready"
+	QuoteTimeout  QuoteStatus = "timeout"
+	QuoteFailed   QuoteStatus = "query_failed"
+	QuoteInvalid  QuoteStatus = "validation_failed"
+	QuoteExpired  QuoteStatus = "connection_expired"
+	QuoteBusy     QuoteStatus = "busy"
+	QuoteTooLarge QuoteStatus = "too_large"
+)
+
 type Sender struct {
 	ID       int64
 	Nickname Optional[string]
@@ -252,6 +268,12 @@ type Plugin interface {
 	Init(context.Context, Host) error
 	Deliver(Message) DeliveryResult
 	Close(context.Context) error
+}
+
+// QuotedMessageConsumer is optional. Core reads it once after successful Init.
+// It requests one-level quote enrichment after Rule and permission checks.
+type QuotedMessageConsumer interface {
+	NeedsQuotedMessage() bool
 }
 type User struct {
 	ID       int64

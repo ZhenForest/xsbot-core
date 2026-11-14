@@ -25,6 +25,9 @@ func configDigest(c config.Config) string {
 func (a *App) coreBase() string { return configDigest(a.formal) }
 func (a *App) backend() admin.Backend {
 	return admin.Backend{
+		DocumentEditors: a.manager.DocumentEditors,
+		ReadDocument:    a.manager.ReadDocument,
+		SaveDocument:    a.manager.SaveDocument,
 		PluginConfiguration: func(ctx context.Context, id string) (any, error) {
 			if id == "" {
 				return a.manager.ConfigurationPlugins(), nil

@@ -16,6 +16,7 @@ import (
 	"github.com/ZhenForest/xsbot-core/internal/admin"
 	"github.com/ZhenForest/xsbot-core/internal/botapi"
 	"github.com/ZhenForest/xsbot-core/internal/config"
+	"github.com/ZhenForest/xsbot-core/internal/dispatch"
 	"github.com/ZhenForest/xsbot-core/internal/logging"
 	"github.com/ZhenForest/xsbot-core/internal/media"
 	"github.com/ZhenForest/xsbot-core/internal/message"
@@ -34,6 +35,7 @@ type App struct {
 	mu             sync.Mutex
 	rules          *config.Rules
 	router         *router.Router
+	dispatch       *dispatch.Queue
 	manager        *plugins.Manager
 	shared         *botapi.Shared
 	log            *logging.Logger
@@ -111,6 +113,7 @@ func load(root string, write func(string, []byte) error) (*App, error) {
 		return nil, e
 	}
 	a := &App{Root: root, cfg: cfg, formal: cfg, router: router.New(), log: log, stop: make(chan struct{}), lock: lock, installed: map[string]bool{}, writeConfig: write}
+	a.dispatch = dispatch.New(a.routeEvent)
 	a.initializing.Store(true)
 	a.shared = botapi.NewShared(transport, resources, run.NewOperations(), log.Write)
 	ids := []string{}
@@ -184,7 +187,7 @@ func (a *App) entries(files map[string]config.RuleFile) []router.Entry {
 	out := []router.Entry{}
 	for _, i := range a.manager.Instances {
 		if f, ok := files[i.Descriptor.ID]; ok {
-			out = append(out, router.Entry{ID: i.Descriptor.ID, Priority: i.Priority, Rules: f.Rules, Deliver: i.Deliver})
+			out = append(out, router.Entry{ID: i.Descriptor.ID, Priority: i.Priority, Rules: f.Rules, Deliver: i.Deliver, NeedsQuotedMessage: i.NeedsQuotedMessage})
 		}
 	}
 	return out
@@ -195,6 +198,9 @@ func (a *App) Stop(restart bool) {
 		a.restart.Store(restart)
 		a.closing.Store(true)
 		a.router.Stop()
+		if a.dispatch != nil {
+			a.dispatch.Stop()
+		}
 		a.shared.Client.StopReconnect()
 		a.shared.Operations.StartClosing()
 		close(a.stop)
@@ -243,6 +249,11 @@ func (a *App) Run(ctx context.Context, ready func() error) int {
 	go func() {
 		defer close(finished)
 		a.manager.Close(closingCtx)
+		if a.dispatch != nil {
+			if e := a.dispatch.Wait(closingCtx); e != nil {
+				a.log.Write("WARN", "core", "dispatch shutdown deadline")
+			}
+		}
 		if e := a.shared.Operations.Finish(closingCtx); e != nil {
 			a.log.Write("WARN", "core", "shutdown deadline: "+e.Error())
 		}
@@ -291,7 +302,6 @@ func (a *App) event(event onebot.Event) {
 	if !a.cfg.Connection.SelfMessages && m.BotID.State == sdk.Present && m.Sender.ID == m.BotID.Value {
 		return
 	}
-	m = a.shared.ResourcesAt(m, event.Generation)
 	var body strings.Builder
 	for _, s := range m.Segments {
 		if s.Kind == sdk.Text {
@@ -301,7 +311,22 @@ func (a *App) event(event onebot.Event) {
 		}
 	}
 	a.log.Write("INFO", "message", fmt.Sprintf("scene=%s target=%d sender=%d message=%d %s", m.Ref.Target.Scene, m.Ref.Target.ID, m.Sender.ID, m.Ref.ID, body.String()))
-	for _, r := range a.router.Route(m) {
+	if reason := a.dispatch.Submit(dispatch.Event{Message: m, Generation: event.Generation, Weight: message.Weight(m)}); reason != "" {
+		a.log.Write("WARN", "core", fmt.Sprintf("scene=%s target=%d message=%d %s", m.Ref.Target.Scene, m.Ref.Target.ID, m.Ref.ID, reason))
+	}
+}
+
+func (a *App) routeEvent(ctx context.Context, event dispatch.Event) {
+	m := a.shared.ResourcesAt(event.Message, event.Generation)
+	for _, r := range a.router.RouteWith(ctx, m, func(ctx context.Context, m sdk.Message) sdk.Message {
+		enriched := a.shared.EnrichQuotes(ctx, m, event.Generation)
+		for _, segment := range enriched.Segments {
+			if segment.Kind == sdk.Reply && segment.QuoteStatus != "" && segment.QuoteStatus != sdk.QuoteReady {
+				a.log.Write("WARN", "core", fmt.Sprintf("quote status=%s scene=%s target=%d message=%d", segment.QuoteStatus, m.Ref.Target.Scene, m.Ref.Target.ID, m.Ref.ID))
+			}
+		}
+		return enriched
+	}) {
 		a.log.Write("DEBUG", r.Plugin, fmt.Sprintf("rule=%d %s %s", r.Rule, r.Event, r.Reason))
 	}
 }

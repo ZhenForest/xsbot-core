@@ -13,7 +13,7 @@ fieldset{min-width:0;border:1px solid #dce5f0;border-radius:10px;margin:18px 0;p
 <div id="panel" hidden><nav id="navigation" class="section-nav" aria-label="管理页面导航"><a href="#overview">运行状态</a><a href="#coreconfig">Core 配置</a><a href="#plugins">插件管理</a><a href="#rules">插件与规则</a><a href="#logs">日志</a><a href="#account">管理员账号</a></nav><section id="account"><h2>管理员账号</h2><p>首次登录需先设置新密码，至少 12 个字符。修改后重新登录。</p><label>用户名 <input id="newname" autocomplete="username"></label><label>新密码 <input id="newpass" type="password" autocomplete="new-password"></label><button class="primary" onclick="changeAccount()">保存账号</button><button onclick="logout()">退出</button></section>
 <div id="work"><section id="overview"><h2>运行状态</h2><button onclick="loadState()">刷新状态</button><button class="danger" onclick="api('/api/restart','POST',{}).then(()=>note('正在重启 Core，请稍后重新登录')).catch(fail)">重启 Core</button><a id="napcat" target="_blank" rel="noopener">打开 NapCat 管理界面</a><pre id="state"></pre><details><summary>对照运行配置、正式配置与编辑草稿</summary><div id="configcompare" style="overflow-x:auto"></div></details></section>
 <section id="coreconfig"><h2>Core 配置</h2><p>保存仅修改草稿；更新正式配置后需重启。连接凭据不会回显，留空表示保留。</p><div id="coreform"></div><button class="primary" onclick="saveCore()">保存草稿</button><button onclick="api('/api/core/apply','POST',{}).then(()=>note('正式配置已更新，等待重启生效')).catch(fail)">更新 Core 配置</button><button onclick="reviewCore()">查看当前正式配置</button><button onclick="rebaseCore()">已核对，保留草稿继续编辑</button><pre id="corebaseline" hidden></pre></section>
-<section id="plugins"><h2>插件管理</h2><p>仅声明配置能力的插件显示配置入口。保存并生效不会修改 Core Rule。</p><button onclick="loadPluginManagement().catch(fail)">刷新插件列表</button><div id="pluginmanagement"></div><div id="pluginsettings"></div></section>
+<section id="plugins"><h2>插件管理</h2><p>插件按能力提供配置和文档编辑入口。保存不会修改 Core Rule。</p><button onclick="loadPluginManagement().catch(fail)">刷新插件列表</button><div id="pluginmanagement"></div><div id="pluginsettings"></div><div id="plugindocuments"></div></section>
 <section id="rules"><h2>插件与规则</h2><label>插件 <select id="plugin" onchange="loadRule()"></select></label><button onclick="addRule()">添加规则</button><button onclick="toForm()">切换表单</button><button onclick="toYAML()">切换 YAML</button><div id="ruleform"></div><textarea id="yaml" hidden spellcheck="false"></textarea><button class="primary" onclick="saveRule()">保存规则草稿</button><button onclick="applyRule()">更新此插件规则</button><button onclick="reviewRule()">查看当前正式规则</button><button onclick="rebaseRule()">已核对，保留规则草稿继续编辑</button><pre id="rulebaseline" hidden></pre><small>权限名单为空表示拒绝。规则更新不会提交 Core 草稿。</small></section>
 <section id="logs"><h2>日志</h2><p>最新记录在前，每页最多 100 条；仅翻页时获取旧记录。翻页固定本次快照，刷新才获取新日志；快照保留 5 分钟。</p><label>级别 <select id="level" onchange="logs(true)"><option value="">全部</option><option>INFO</option><option>DEBUG</option><option>WARN</option><option>ERROR</option></select> 插件 <input id="logplugin" onchange="logs(true)"> 关键词 <input id="keyword" onchange="logs(true)"></label><button id="logrefresh" onclick="logs(true)">刷新最新日志</button><button id="logprev" disabled onclick="logs(false,Math.max(0,offset-100))">上一页（较新）</button><button id="lognext" disabled onclick="logs(false,offset+100)">下一页（较旧）</button><a href="/api/logs/download">下载完整日志快照</a><p id="logpage"></p><pre id="logrows"></pre></section></div></div><footer class="page-footer">xsbot · 个人机器人管理台</footer></main>
 <script>
@@ -78,12 +78,12 @@ async function toYAML(){try{if(mode==='form'){let v=await api('/api/rule/form','
 async function saveRule(notify=true){if(!draft)throw Error('先选择插件');let savedForm=JSON.stringify(form),text;if(mode==='form'){for(let input of $('ruleform').querySelectorAll('input'))if(!input.reportValidity())throw Error('请先修正规则表单');let v=await api('/api/rule/form','POST',form);text=v.text}else text=$('yaml').value;await api('/api/rule','POST',{ID:ruleID,Draft:{...draft,Text:text}});draft.Text=text;ruleSavedText=text;ruleSavedForm=savedForm;if(notify)note('规则草稿已保存')}
 async function applyRule(){try{await saveRule(false);let preview=await api('/api/rule/preview','POST',{Base:draft.Base});let message='即将整体校验并提交 '+preview.plugins.length+' 个插件的规则。\n内容有变化的插件：'+(preview.changed.join('、')||'无（将创建新修订）')+'\n不会提交 Core 配置。确认更新吗？';if(!confirm(message)){note('已取消更新，规则草稿仍保留');return}await api('/api/rule/apply','POST',{Base:draft.Base,Review:preview.review});note('全部待更新规则已整体校验并更新');await loadRule(true);await loadState()}catch(e){fail(e)}}
 async function logs(reset=false,pageOffset=offset){let request=++logRequest;$('logprev').disabled=true;$('lognext').disabled=true;try{let target=reset?0:pageOffset;let q=new URLSearchParams({level:$('level').value,plugin:$('logplugin').value,keyword:$('keyword').value,offset:String(target)});if(!reset&&logSnapshot)q.set('snapshot',logSnapshot);let v=await api('/api/logs?'+q);if(request!==logRequest)return;offset=target;logSnapshot=v.snapshot;logMore=v.more;$('logrows').textContent=(v.rows||[]).join('')||'没有符合条件的日志';$('logpage').textContent='第 '+(offset/100+1)+' 页 · 最新在前 · '+(logMore?'还有较旧记录':'已到最旧记录')}catch(e){if(request===logRequest)fail(e)}finally{if(request===logRequest){$('logprev').disabled=offset===0;$('lognext').disabled=!logMore}}}
-window.addEventListener('beforeunload',event=>{if(pluginSettingsDirty()||ruleDirty()||(coreSaved&&JSON.stringify(core)!==coreSaved)){event.preventDefault();event.returnValue=''}});
+window.addEventListener('beforeunload',event=>{if(pluginDocumentsDirty()||pluginSettingsDirty()||ruleDirty()||(coreSaved&&JSON.stringify(core)!==coreSaved)){event.preventDefault();event.returnValue=''}});
 document.querySelector('button[onclick="applyRule()"]').textContent='整体更新全部待更新规则';
 document.querySelector('button[onclick*="/api/core/apply"]').onclick=applyCore;
 document.querySelector('button[onclick="saveRule()"]').onclick=()=>saveRule().catch(fail);
 
-let pluginSettings=null,pluginSettingsID='',pluginSettingsValues=null,pluginSettingsSaved='',pluginSettingsBusy=false,pluginActionStates=Object.create(null);
+let pluginSettings=null,pluginSettingsID='',pluginSettingsValues=null,pluginSettingsSaved='',pluginSettingsBusy=false,pluginActionStates=Object.create(null),documentCapablePlugins=new Set();
 function pluginSettingsDirty(){return !!pluginSettings&&JSON.stringify(pluginSettingsValues)!==pluginSettingsSaved}
 function pluginFieldDefault(f){if(f.kind==='checkbox')return false;if(f.kind==='number')return 0;if(f.kind==='list')return [];return ''}
 function pluginFields(fields,values,box){for(let f of fields||[]){
@@ -100,18 +100,68 @@ function pluginFields(fields,values,box){for(let f of fields||[]){
  input.oninput=()=>{values[f.key]=f.kind==='checkbox'?input.checked:f.kind==='number'?Number(input.value):input.value};line.append(input);box.append(line);
  if(f.hint){let hint=document.createElement('small');hint.textContent=f.hint;box.append(hint)}
 }}
-async function loadPluginManagement(){if(pluginSettingsBusy)throw Error('正在执行插件操作');let rows=await api('/api/plugin-config'),box=$('pluginmanagement');box.replaceChildren();let seen=new Set();
- for(let p of rows){seen.add(p.id);let row=document.createElement('div');row.className='row';let name=document.createElement('strong');name.textContent=p.name+' ('+p.id+') '+p.version+' · '+({ready:'已就绪',initializing:'初始化中',initialization_failed:'初始化失败'}[p.state]||p.state);row.append(name);if(p.configurable){let b=document.createElement('button');b.textContent='配置';b.disabled=p.state!=='ready';b.onclick=()=>openPluginSettings(p.id).catch(fail);row.append(b)}box.append(row)}
+async function loadPluginManagement(){if(pluginSettingsBusy)throw Error('正在执行插件操作');let rows=await api('/api/plugin-config'),box=$('pluginmanagement');box.replaceChildren();let seen=new Set();documentCapablePlugins=new Set(rows.filter(p=>p.document_editable).map(p=>p.id));
+ for(let p of rows){seen.add(p.id);let row=document.createElement('div');row.className='row';let name=document.createElement('strong');name.textContent=p.name+' ('+p.id+') '+p.version+' · '+({ready:'已就绪',initializing:'初始化中',initialization_failed:'初始化失败'}[p.state]||p.state);row.append(name);if(p.configurable){let b=document.createElement('button');b.textContent='配置';b.disabled=p.state!=='ready';b.onclick=()=>openPluginSettings(p.id).catch(fail);row.append(b)}if(p.document_editable){let b=document.createElement('button');b.textContent='编辑文档';b.disabled=p.state!=='ready';b.onclick=()=>openPluginDocuments(p.id).catch(fail);row.append(b)}box.append(row)}
  for(let p of runtimeState?.formal_config?.Plugins||[]){if(seen.has(p.ID))continue;let row=document.createElement('p');row.textContent=p.ID+' · '+(!installed[p.ID]?'文件缺失':!p.Enabled?'已停用，启用并重启后可配置':'本次运行不可用，检查优先级、规则或等待重启');box.append(row)}
  if(!rows.length&&!runtimeState?.formal_config?.Plugins?.length){let p=document.createElement('p');p.textContent='当前没有插件';box.append(p)}
 }
-async function openPluginSettings(id){if(pluginSettingsBusy)throw Error('正在执行插件操作');if(pluginSettingsDirty()&&!confirm('插件配置有未保存修改，放弃并重新读取吗？'))return;let config=await api('/api/plugin-config?id='+encodeURIComponent(id));pluginSettings=config;pluginSettingsID=id;pluginSettingsValues=JSON.parse(config.values);pluginSettingsSaved=JSON.stringify(pluginSettingsValues);pluginActionStates=Object.create(null);renderPluginSettings()}
+async function openPluginSettings(id){if(pluginSettingsBusy||pluginDocumentsBusy)throw Error('正在执行插件操作');if(pluginDocuments&&pluginDocuments.id!==id&&pluginDocumentsDirty()&&!confirm('文档有未保存修改，放弃并切换插件吗？'))return;if(pluginSettingsDirty()&&!confirm('插件配置有未保存修改，放弃并重新读取吗？'))return;pluginSettingsBusy=true;try{let config=await api('/api/plugin-config?id='+encodeURIComponent(id));if(pluginDocuments&&pluginDocuments.id!==id){pluginDocuments=null;renderPluginDocuments()}pluginSettings=config;pluginSettingsID=id;pluginSettingsValues=JSON.parse(config.values);pluginSettingsSaved=JSON.stringify(pluginSettingsValues);pluginActionStates=Object.create(null)}finally{pluginSettingsBusy=false;renderPluginSettings()}}
 function renderPluginSettings(){let box=$('pluginsettings');box.replaceChildren();if(!pluginSettings)return;let title=document.createElement('h3');title.textContent=pluginSettingsID+' 配置';box.append(title);let form=document.createElement('fieldset');form.disabled=pluginSettingsBusy;pluginFields(pluginSettings.fields,pluginSettingsValues,form);let save=document.createElement('button');save.textContent='保存并生效';save.className='primary';save.onclick=()=>savePluginSettings().catch(fail);form.append(save);box.append(form);
+ if(documentCapablePlugins.has(pluginSettingsID)){let b=document.createElement('button');b.textContent='编辑插件文档';b.disabled=pluginSettingsBusy||pluginDocumentsBusy;b.onclick=()=>openPluginDocuments(pluginSettingsID).catch(fail);box.append(b)}
  for(let action of pluginSettings.actions||[]){let area=document.createElement('fieldset');area.disabled=pluginSettingsBusy;let state=pluginActionStates[action.id]||(pluginActionStates[action.id]={values:{},message:'',error:false});pluginFields(action.fields,state.values,area);let b=document.createElement('button');b.textContent=action.label;b.onclick=()=>runPluginAction(action,state.values);area.append(b);let result=document.createElement('pre');result.role='status';result.textContent=state.message;result.hidden=!state.message;result.style.color=state.error?'#a02b24':'';area.append(result);box.append(area)}
 }
 async function savePluginSettings(){if(pluginSettingsBusy)return;pluginSettingsBusy=true;renderPluginSettings();try{await api('/api/plugin-config','POST',{ID:pluginSettingsID,Revision:pluginSettings.revision,Values:JSON.stringify(pluginSettingsValues)});pluginSettingsSaved=JSON.stringify(pluginSettingsValues);let config=await api('/api/plugin-config?id='+encodeURIComponent(pluginSettingsID));pluginSettings=config;pluginSettingsValues=JSON.parse(config.values);pluginSettingsSaved=JSON.stringify(pluginSettingsValues);note('插件配置已保存并生效；Core Rule 未修改')}finally{pluginSettingsBusy=false;renderPluginSettings()}}
 async function runPluginAction(action,values){if(pluginSettingsBusy)return;let state=pluginActionStates[action.id]||(pluginActionStates[action.id]={values,message:'',error:false});state.values=values;try{if(pluginSettingsDirty())throw Error('请先保存插件配置，管理操作使用已保存配置');if(action.confirm&&!confirm(action.confirm))return;pluginSettingsBusy=true;state.message='正在执行…';state.error=false;renderPluginSettings();let v=await api('/api/plugin-action','POST',{ID:pluginSettingsID,Revision:pluginSettings.revision,Action:action.id,Input:JSON.stringify(values)});state.message=v.message;state.error=false}catch(e){state.message=e.message||String(e);state.error=true}finally{pluginSettingsBusy=false;renderPluginSettings()}}
 
+
+let pluginDocuments=null,pluginDocumentsBusy=false;
+function pluginDocumentsDirty(){return !!pluginDocuments&&Object.values(pluginDocuments.states).some(s=>s.key&&s.content!==s.saved)}
+function documentBytes(text){return new TextEncoder().encode(text).length}
+async function openPluginDocuments(id){
+ if(pluginDocumentsBusy||pluginSettingsBusy)throw Error('正在执行插件操作');
+ if(pluginDocumentsDirty()&&!confirm('文档有未保存修改，放弃并重新读取入口吗？'))return;
+ if(pluginSettingsID!==id&&pluginSettingsDirty()&&!confirm('插件配置有未保存修改，放弃并切换插件吗？'))return;
+ pluginDocumentsBusy=true;
+ try{let editors=await api('/api/plugin-document-editors?id='+encodeURIComponent(id));if(pluginSettingsID!==id){pluginSettings=null;renderPluginSettings()}pluginDocuments={id,editors:editors||[],states:Object.create(null)}}finally{pluginDocumentsBusy=false;renderPluginDocuments()}
+}
+function renderPluginDocuments(){
+ let box=$('plugindocuments');box.replaceChildren();if(!pluginDocuments)return;
+ let title=document.createElement('h3');title.textContent=pluginDocuments.id+' 文档编辑';box.append(title);
+ let close=document.createElement('button');close.textContent='关闭文档编辑';close.disabled=pluginDocumentsBusy;close.onclick=()=>{if(pluginDocumentsDirty()&&!confirm('文档有未保存修改，放弃并关闭吗？'))return;pluginDocuments=null;renderPluginDocuments()};box.append(close);
+ for(let editor of pluginDocuments.editors){
+  let state=pluginDocuments.states[editor.id]||(pluginDocuments.states[editor.id]={values:{},key:'',revision:'',content:'',saved:'',message:'',selector:''});
+  let area=document.createElement('fieldset');area.disabled=pluginDocumentsBusy;let legend=document.createElement('legend');legend.textContent=editor.label;area.append(legend);
+  if(editor.hint){let hint=document.createElement('p');hint.textContent=editor.hint;area.append(hint)}
+  pluginFields(editor.fields,state.values,area);
+  let read=document.createElement('button');read.textContent='读取文档';read.onclick=()=>readPluginDocument(editor,state);area.append(read);
+  if(state.key){
+   let label=document.createElement('p');label.textContent='当前文档：'+state.key+' · '+editor.format+' · '+(state.content===state.saved?'已保存':'有未保存修改');area.append(label);
+   let input=document.createElement('textarea');input.value=state.content;input.spellcheck=false;input.style.minHeight='360px';input.setAttribute?.('aria-label',editor.label+'正文');area.append(input);
+   let size=document.createElement('small');let updateSize=()=>{size.textContent=documentBytes(state.content)+' / '+editor.max_bytes+' UTF-8 字节'};updateSize();area.append(size);
+   input.oninput=()=>{state.content=input.value;label.textContent='当前文档：'+state.key+' · '+editor.format+' · '+(state.content===state.saved?'已保存':'有未保存修改');updateSize()};
+   let save=document.createElement('button');save.textContent='校验并保存文档';save.className='primary';save.onclick=()=>savePluginDocument(editor,state);area.append(save);
+  }
+  let result=document.createElement('pre');result.role='status';result.textContent=state.message;result.hidden=!state.message;area.append(result);box.append(area);
+ }
+}
+async function documentRequest(path,body,revision){
+ let response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':revision?'text/plain; charset=utf-8':'application/json','X-CSRF-Token':csrf,...(revision?{'X-Document-Revision':revision}:{})},body});
+ let text=await response.text();if(!response.ok){let message=text;try{message=JSON.parse(text).error||text}catch{}throw Error(message)}
+ let key=response.headers.get('X-Document-Key'),rev=response.headers.get('X-Document-Revision');if(!key||!rev)throw Error('返回缺少文档标识，请重新读取确认');return {key,revision:rev,content:text};
+}
+async function readPluginDocument(editor,state){
+ if(pluginDocumentsBusy)return;if(state.key&&state.content!==state.saved&&!confirm('放弃该文档的未保存修改并读取吗？'))return;
+ let pane=pluginDocuments,selector=JSON.stringify(state.values);pluginDocumentsBusy=true;state.message='正在读取…';renderPluginDocuments();
+ try{let d=await documentRequest('/api/plugin-document/read?'+new URLSearchParams({id:pane.id,editor:editor.id}),selector);if(pluginDocuments!==pane)return;Object.assign(state,d,{saved:d.content,selector,message:'读取成功'})}catch(e){state.message=e.message||String(e)}finally{pluginDocumentsBusy=false;renderPluginDocuments()}
+}
+async function savePluginDocument(editor,state){
+ if(pluginDocumentsBusy||!state.key)return;
+ if(JSON.stringify(state.values)!==state.selector){state.message='选择参数已变化，请先读取对应文档；当前正文仍属于 '+state.key;renderPluginDocuments();return}
+ if(documentBytes(state.content)>editor.max_bytes){state.message='文档超过大小限制，未保存';renderPluginDocuments();return}
+ if(editor.confirm&&!confirm(editor.confirm))return;
+ let pane=pluginDocuments;pluginDocumentsBusy=true;state.message='正在校验并保存…';renderPluginDocuments();
+ try{let d=await documentRequest('/api/plugin-document/save?'+new URLSearchParams({id:pane.id,editor:editor.id,key:state.key}),state.content,state.revision);if(pluginDocuments!==pane)return;if(d.key!==state.key)throw Error('返回的文档不匹配，请重新读取确认');Object.assign(state,d,{saved:d.content,message:'文档已保存'})}catch(e){state.message=(e.message||String(e))+'；草稿保留。如请求中断，请重新读取确认保存结果。'}finally{pluginDocumentsBusy=false;renderPluginDocuments()}
+}
 
 api('/api/session').then(v=>{csrf=v.csrf;show(v.temporary)}).catch(()=>{});
 </script></html>

@@ -240,13 +240,19 @@ func (c *Client) Members(ctx context.Context, group int64) ([]sdk.Member, error)
 	return out, nil
 }
 func (c *Client) GetMessage(ctx context.Context, ref sdk.MessageRef) (sdk.Message, error) {
+	return c.GetMessageAt(ctx, ref, 0)
+}
+
+// GetMessageAt pins an automatic quote query to the incoming socket generation.
+// Explicit SDK queries use generation zero and retain their existing semantics.
+func (c *Client) GetMessageAt(ctx context.Context, ref sdk.MessageRef, generation uint64) (sdk.Message, error) {
 	if e := ref.Target.Validate(); e != nil {
 		return sdk.Message{}, e
 	}
 	if ref.ID == 0 {
 		return sdk.Message{}, &sdk.Error{Kind: sdk.Invalid, Reason: "missing message ID"}
 	}
-	v, e := c.call(ctx, "get_msg", map[string]int64{"message_id": ref.ID})
+	v, e := c.callAt(ctx, "get_msg", map[string]int64{"message_id": ref.ID}, generation)
 	if e != nil {
 		return sdk.Message{}, e
 	}

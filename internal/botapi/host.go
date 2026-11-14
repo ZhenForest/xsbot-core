@@ -23,6 +23,7 @@ type Shared struct {
 	Operations *run.Operations
 	Log        func(string, string, string)
 	references cipher.AEAD
+	quoteSlots chan struct{}
 }
 type resource struct {
 	Segment    sdk.Segment
@@ -47,7 +48,7 @@ func NewShared(c *onebot.Client, m *media.Manager, ops *run.Operations, log func
 	if e != nil {
 		panic(e)
 	}
-	return &Shared{Client: c, Media: m, Operations: ops, Log: log, references: sealed}
+	return &Shared{Client: c, Media: m, Operations: ops, Log: log, references: sealed, quoteSlots: make(chan struct{}, 4)}
 }
 func (s *Shared) Resources(m sdk.Message) sdk.Message {
 	return s.ResourcesAt(m, s.Client.Generation())

@@ -13,7 +13,12 @@ func (s *Server) pluginConfiguration(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "initializing or closing", 409)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 180*time.Second)
+	timeout := 180 * time.Second
+	// Model connection tests may use the plugin's configurable 600-second request deadline.
+	if r.URL.Path == "/api/plugin-action" {
+		timeout = 660 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
 	var out any
 	var err error

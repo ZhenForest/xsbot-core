@@ -114,6 +114,10 @@ func (c *Client) detach(s *session) {
 	s.conn.CloseNow()
 }
 func (c *Client) call(ctx context.Context, action string, payload any) (*strictjson.Value, error) {
+	return c.callAt(ctx, action, payload, 0)
+}
+
+func (c *Client) callAt(ctx context.Context, action string, payload any, generation uint64) (*strictjson.Value, error) {
 	if c.State() != sdk.Connected {
 		return nil, &sdk.Error{Kind: sdk.Unavailable, Operation: action, Reason: "event connection unavailable"}
 	}
@@ -134,6 +138,10 @@ func (c *Client) call(ctx context.Context, action string, payload any) (*strictj
 	ch := make(chan response, 1)
 	c.mu.Lock()
 	s := c.session
+	if generation != 0 && (s == nil || s.generation != generation) {
+		c.mu.Unlock()
+		return nil, &sdk.Error{Kind: sdk.Expired, Operation: action, Reason: "quote connection expired"}
+	}
 	if s == nil || c.State() != sdk.Connected {
 		c.mu.Unlock()
 		return nil, &sdk.Error{Kind: sdk.Unavailable, Operation: action, Reason: "connection unavailable"}

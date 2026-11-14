@@ -2,6 +2,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -30,10 +31,11 @@ type Rule struct {
 	Continue    bool              `yaml:"continue"`
 }
 type Entry struct {
-	ID       string
-	Priority int64
-	Rules    []Rule
-	Deliver  func(sdk.Message) sdk.DeliveryResult
+	ID                 string
+	Priority           int64
+	Rules              []Rule
+	Deliver            func(sdk.Message) sdk.DeliveryResult
+	NeedsQuotedMessage bool
 }
 type snapshot struct{ Entries []Entry }
 type Result struct {
@@ -163,44 +165,82 @@ func (r *Router) Update(entries []Entry) error {
 	return nil
 }
 func (r *Router) Route(m sdk.Message) []Result {
+	return r.RouteWith(context.Background(), m, nil)
+}
+
+// RouteWith advances one message through one immutable rule snapshot. Preparation
+// is lazy, once per message, and runs outside the routing gate. Only short state
+// decisions and Deliver callbacks hold that gate; quoted content never matches.
+// The caller owns conversation order, admission limits and cancellation.
+func (r *Router) RouteWith(ctx context.Context, m sdk.Message, prepare func(context.Context, sdk.Message) sdk.Message) []Result {
 	r.serial.Lock()
-	defer r.serial.Unlock()
-	if r.closing.Load() {
-		return nil
-	}
 	s := r.current.Load()
+	r.serial.Unlock()
 	var results []Result
+	var enriched sdk.Message
+	prepared := false
 	for _, e := range s.Entries {
-		if r.closing.Load() {
-			return results
+		r.serial.Lock()
+		if r.closing.Load() || ctx.Err() != nil {
+			r.serial.Unlock()
+			break
 		}
 		if r.disabled[e.ID] {
+			r.serial.Unlock()
 			continue
 		}
+		index := -1
 		for i, rule := range e.Rules {
-			if !matches(rule, m) {
-				continue
+			if matches(rule, m) {
+				index = i
+				break
 			}
-			if !allowed(rule.Permissions, m) {
-				return append(results, Result{e.ID, i, "permission_denied", "whitelist/blacklist"})
+		}
+		if index < 0 {
+			r.serial.Unlock()
+			continue
+		}
+		rule := e.Rules[index]
+		if !allowed(rule.Permissions, m) {
+			r.serial.Unlock()
+			return append(results, Result{e.ID, index, "permission_denied", "whitelist/blacklist"})
+		}
+		r.serial.Unlock()
+		if e.NeedsQuotedMessage && !prepared {
+			enriched = m
+			if prepare != nil {
+				enriched = prepare(ctx, m)
 			}
-			copy := sdk.CloneMessage(m)
-			copy.Segments = deliverySegments(copy)
-			if r.closing.Load() {
-				return results
-			}
-			delivery, panicked := deliver(e.Deliver, copy)
-			if panicked {
-				r.disabled[e.ID] = true
-				results = append(results, Result{e.ID, i, "panic", delivery.Reason})
-			} else if delivery.Accepted {
-				results = append(results, Result{e.ID, i, "accepted", ""})
-			} else {
-				results = append(results, Result{e.ID, i, "rejected", delivery.Reason})
-			}
-			if !rule.Continue {
-				return results
-			}
+			prepared = true
+		}
+		view := m
+		if e.NeedsQuotedMessage {
+			view = enriched
+		}
+		copy := sdk.CloneMessage(view)
+		copy.Segments = deliverySegments(copy)
+		r.serial.Lock()
+		if r.closing.Load() || ctx.Err() != nil {
+			r.serial.Unlock()
+			break
+		}
+		// Another conversation may have disabled this plugin while preparation
+		// waited. Skip it, preserving the remaining snapshot candidates.
+		if r.disabled[e.ID] {
+			r.serial.Unlock()
+			continue
+		}
+		delivery, panicked := deliver(e.Deliver, copy)
+		event := "rejected"
+		if panicked {
+			r.disabled[e.ID] = true
+			event = "panic"
+		} else if delivery.Accepted {
+			event = "accepted"
+		}
+		r.serial.Unlock()
+		results = append(results, Result{e.ID, index, event, delivery.Reason})
+		if !rule.Continue {
 			break
 		}
 	}

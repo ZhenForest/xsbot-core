@@ -15,12 +15,16 @@ import (
 	"time"
 	"github.com/ZhenForest/xsbot-core/internal/config"
 	"github.com/ZhenForest/xsbot-core/internal/logging"
+	"github.com/ZhenForest/xsbot-core/sdk"
 )
 
 //go:embed index.html
 var assets embed.FS
 
 type Backend struct {
+	DocumentEditors           func(context.Context, string) ([]sdk.DocumentEditor, error)
+	ReadDocument              func(context.Context, string, string, string) (sdk.Document, error)
+	SaveDocument              func(context.Context, string, string, string, string, string) (sdk.Document, error)
 	PluginConfiguration       func(context.Context, string) (any, error)
 	SavePluginConfiguration   func(context.Context, string, string, string) error
 	PluginConfigurationAction func(context.Context, string, string, string, string) (string, error)
@@ -43,14 +47,15 @@ type Backend struct {
 	Logger                    *logging.Logger
 }
 type Server struct {
-	HTTP     *http.Server
-	Identity *Identity
-	Backend  Backend
-	port     int
+	HTTP          *http.Server
+	Identity      *Identity
+	Backend       Backend
+	port          int
+	documentSlots chan struct{}
 }
 
 func NewServer(identity *Identity, b Backend, port int, publicIP ...string) *Server {
-	s := &Server{Identity: identity, Backend: b, port: port}
+	s := &Server{Identity: identity, Backend: b, port: port, documentSlots: make(chan struct{}, 2)}
 	host := "0.0.0.0"
 	if len(publicIP) > 0 {
 		ip := net.ParseIP(publicIP[0])
@@ -145,6 +150,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
+	case r.URL.Path == "/api/plugin-document-editors" || r.URL.Path == "/api/plugin-document/read" || r.URL.Path == "/api/plugin-document/save":
+		s.pluginDocument(w, r)
 	case r.URL.Path == "/api/plugin-config" || r.URL.Path == "/api/plugin-action":
 		s.pluginConfiguration(w, r)
 	case r.URL.Path == "/api/account" && r.Method == "POST":
